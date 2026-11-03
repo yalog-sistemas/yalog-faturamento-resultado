@@ -4,14 +4,15 @@ window.installYalogAccess = function installYalogAccess({identity, rpc, token, n
   if(!access||!Array.isArray(access.sections))throw Error('Permissões indisponíveis. Entre novamente.');
   const labels={overview:'Visão Geral',storage:'Armazenagem',transport:'Transporte',costs:'Custos e Despesas'};
   const can=section=>access.admin||access.sections.includes(section);
-  const execute=section=>access.profile!=='VISUALIZADOR'&&can(section);
+  const viewer=['VISUALIZADOR','CONSULTA','LEITURA','VIEWER'].includes(String(access.profile).trim().toUpperCase());
+  const execute=section=>!viewer&&can(section);
   const deny=()=>{notify('Seu perfil não permite esta ação.',true);return false};
   const guard=(name,test)=>{const base=window[name];if(typeof base==='function')window[name]=function(...args){return test(...args)?base.apply(this,args):deny()}};
   const originalGo=window.go;
   window.go=function(tab){return can(tab)?originalGo.call(this,tab):deny()};
-  guard('openInput',kind=>can(kind));
+  guard('openInput',kind=>execute(kind));
   guard('renderInput',kind=>can(kind));
-  guard('openCostInput',()=>can('costs'));
+  guard('openCostInput',()=>execute('costs'));
   guard('renderCostInput',()=>can('costs'));
   guard('saveInputs',()=>execute(document.getElementById('inputModal')?.dataset.kind||'storage'));
   guard('saveCosts',()=>execute('costs'));
@@ -21,6 +22,10 @@ window.installYalogAccess = function installYalogAccess({identity, rpc, token, n
   guard('setForecastMode',()=>execute('storage')&&execute('transport'));
   for(const name of ['addCostLine','resetCosts'])guard(name,()=>execute('costs'));
   guard('resetData',()=>access.admin);
+  guard('addStorageOperation',()=>execute('storage'));
+  guard('addTransportOperation',()=>execute('transport'));
+  guard('resetInputs',()=>execute(document.getElementById('inputModal')?.dataset.kind||'storage'));
+  if(viewer)for(const name of ['save','editTable','addSource','syncGrid','captureInputGrid','syncDashboardFromInputs','advanceEditedCutoffs','persistProjectionStarts'])guard(name,()=>false);
   function lockControls(){
     document.querySelectorAll('.nav [data-tab]').forEach(b=>{b.hidden=!can(b.dataset.tab)});
     for(const section of Object.keys(labels)){
@@ -29,10 +34,15 @@ window.installYalogAccess = function installYalogAccess({identity, rpc, token, n
     }
     document.querySelectorAll('[onclick]').forEach(b=>{
       const handler=b.getAttribute('onclick')||'';
-      if(/openInput\(['"]storage/.test(handler)&&!can('storage'))b.hidden=true;
-      if(/openInput\(['"]transport/.test(handler)&&!can('transport'))b.hidden=true;
-      if(/openCostInput/.test(handler)&&!can('costs'))b.hidden=true;
+      if(/openInput\(['"]storage/.test(handler)&&!execute('storage'))b.hidden=true;
+      if(/openInput\(['"]transport/.test(handler)&&!execute('transport'))b.hidden=true;
+      if(/openCostInput/.test(handler)&&!execute('costs'))b.hidden=true;
     });
+    if(viewer){
+      document.querySelectorAll('[onclick]').forEach(b=>{if(/\b(?:save|saveInputs|saveCosts|resetInputs|resetCosts|resetData|editTable|addStorageOperation|addTransportOperation|addCostLine|addSource|setRevenueMonthStatus|setInputProjectionCutoff|saveProjectionOverride)\s*\(/.test(b.getAttribute('onclick')||'')){b.hidden=true;b.disabled=true}});
+      document.querySelectorAll('#inputModal,#costModal').forEach(m=>m.classList.remove('open'));
+      document.querySelectorAll('#inputGrid input,#costInputGrid input').forEach(i=>i.disabled=true);
+    }
     document.querySelectorAll('.projectionEditor').forEach(input=>{input.disabled=!execute(input.dataset.kind)});
     const inputKind=document.getElementById('inputModal')?.dataset.kind||'storage';
     document.querySelectorAll('#inputModal input,#inputModal select,#inputModal .inputSaveBtn,#inputModal .forecastUnlock').forEach(input=>{
@@ -40,12 +50,12 @@ window.installYalogAccess = function installYalogAccess({identity, rpc, token, n
     });
     document.querySelectorAll('#costInputGrid input,#costModal .addCostInline,#costModal .accountRemove,#costModal .costEntryBar input,#costModal .costEntryBar select,#costModal .costEntryBar button,#costModal .inputSaveBtn,#costModal button[onclick*="saveCosts"],#costModal button[onclick*="resetCosts"],#costModal input[type="checkbox"]').forEach(input=>{input.disabled=!execute('costs')});
     document.querySelectorAll('.forecastControl select').forEach(input=>{input.disabled=!(execute('storage')&&execute('transport'))});
-    if(access.profile==='VISUALIZADOR')document.getElementById('cloudSave').disabled=true;
+    if(viewer){const save=document.getElementById('cloudSave');save.disabled=true;save.hidden=true;}
     for(const panel of document.querySelectorAll('[data-access-denied]'))panel.style.setProperty('display','none','important');
   }
   lockControls();
   let scheduled=false;
-  new MutationObserver(()=>{if(!scheduled){scheduled=true;queueMicrotask(()=>{scheduled=false;lockControls()})}}).observe(document.querySelector('.app'),{childList:true,subtree:true});
+  new MutationObserver(()=>{if(!scheduled){scheduled=true;queueMicrotask(()=>{scheduled=false;lockControls()})}}).observe(document.body,{childList:true,subtree:true});
   const current=[...document.querySelectorAll('main>section.tab')].find(n=>getComputedStyle(n).display!=='none');
   if(!current||!can(current.id))originalGo.call(window,access.sections.find(s=>can(s))||'overview');
   const openOwnPassword=()=>window.openYalogPasswordSettings({identity,rpc,token,beforeChange:beforePasswordChange,onChanged:onPasswordChanged,onExit:onPasswordExit});

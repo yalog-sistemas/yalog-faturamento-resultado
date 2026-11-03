@@ -1,8 +1,8 @@
 {
   "module_id": "gestodefaturamentoeresultado",
   "name": "Gestão de Faturamento e Resultado",
-  "version": "1.2.1",
-  "build": "057",
+  "version": "1.2.2",
+  "build": "058",
   "execution_url": "https://yalog-sistemas.github.io/yalog-faturamento-resultado/",
   "platform_min_version": "1.0.0",
   "auth": {
@@ -12,7 +12,7 @@
     "provider": "supabase",
     "tenant": "company_id"
   },
-  "release": "v56-hierarquia-20261103",
+  "release": "v57-consulta-20261103",
   "permissions": {
     "profiles": [
       "VISUALIZADOR",
