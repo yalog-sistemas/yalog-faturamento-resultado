@@ -1,0 +1,13 @@
+{
+  "release": "v53-online-20261103-r2",
+  "source_file": "index.html fornecido pelo cliente",
+  "source_sha256": "5959cf623bf7495b5689a5d0958b2e1748096eb11be1d1ae002e150f35cc32f0",
+  "source_script_count": 21,
+  "changes": [
+    "Interface reconstruída do anexo",
+    "Renderização final após exibir a interface",
+    "Arquivo de conexão com versão no endereço",
+    "Links atualizados para yalog-sistemas"
+  ],
+  "data_policy": "Lançamentos já existentes no Supabase preservados"
+}

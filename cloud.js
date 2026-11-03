@@ -14,7 +14,7 @@
  function flushEditors(){if(document.getElementById('inputModal')?.classList.contains('open')&&window.saveInputs&&window.saveInputs()===false)return false;if(window.saveCosts&&window.yalogCostsDirty&&window.saveCosts()===false)return false;return true}
  document.getElementById('cloudSave').onclick=async()=>{if(flushEditors())await persist()};
  document.getElementById('cloudBackup').onclick=()=>{if(!readOnly&&!flushEditors())return;const blob=new Blob([JSON.stringify({format:'yalog-faturamento-v1',company_id:identity.company_id,version,storage:store},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='YALOG_Faturamento_'+identity.company_id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
- document.getElementById('cloudExit').onclick=()=>{if((dirty||window.yalogCostsDirty)&&!confirm('Há alterações pendentes. Baixe um backup ou salve antes de sair. Sair mesmo assim?'))return;sessionStorage.removeItem(sessionKey);location.replace('https://yanagizawa-create.github.io/yalog-ecosystem/')};
+ document.getElementById('cloudExit').onclick=()=>{if((dirty||window.yalogCostsDirty)&&!confirm('Há alterações pendentes. Baixe um backup ou salve antes de sair. Sair mesmo assim?'))return;sessionStorage.removeItem(sessionKey);location.replace('https://yalog-sistemas.github.io/yalog-ecosystem/')};
  window.addEventListener('beforeunload',e=>{if(dirty||window.yalogCostsDirty){stash();e.preventDefault();e.returnValue=''}});
  try{
   const params=new URLSearchParams(location.search),handoff=params.get('handoff');if(handoff){params.delete('handoff');history.replaceState({},'',location.pathname+(params.size?'?'+params:'')+location.hash);const session=await rpc('faturamento_validar_handoff',{p_token:handoff});token=session.module_session_token;sessionStorage.setItem(sessionKey,token)}else token=sessionStorage.getItem(sessionKey)||'';
@@ -23,10 +23,16 @@
   const draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');if(draft?.pending&&draft.version===version&&confirm('Encontramos um rascunho não enviado nesta aba. Deseja recuperá-lo?')){store=draft.storage;dirty=true}
   window.YALOG_BOOT={seed:loaded.seed};
   let scriptError=null;const capture=e=>{scriptError=e.error||Error(e.message)};window.addEventListener('error',capture);
-  for(const source of document.querySelectorAll('script[type="application/yalog"]')){const s=document.createElement('script');s.textContent=source.textContent;document.body.appendChild(s);if(scriptError)throw scriptError}
+  const sources=[...document.querySelectorAll('script[type="application/yalog"]')];if(sources.length!==21)throw Error('Publicação incompleta. Atualize a página.');
+  for(const source of sources){const s=document.createElement('script');s.dataset.yalogSource=source.id||'core';s.textContent=source.textContent;document.body.appendChild(s);if(scriptError)throw scriptError;source.dataset.executed='true'}
+  window.YALOG_RUNTIME_RELEASE=document.querySelector('meta[name="yalog-release"]').content;
   window.removeEventListener('error',capture);
-  document.getElementById('cloudIdentity').textContent='YALOG • '+loaded.company_id+' • '+(loaded.nome||loaded.login);
-  document.getElementById('cloudGate').hidden=true;document.body.classList.add('yalog-authorized');initialized=true;
+  document.getElementById('cloudIdentity').textContent='YALOG • '+loaded.company_id+' • '+(loaded.nome||loaded.login)+' • '+window.YALOG_RUNTIME_RELEASE;
+  document.getElementById('cloudGate').hidden=true;document.body.classList.add('yalog-authorized');
+  if(typeof window.render!=='function')throw Error('Interface não inicializada.');
+  window.render();
+  requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+  initialized=true;
   if(readOnly){document.getElementById('cloudSave').disabled=true;dirty=false;message('Consulta • dados carregados do Supabase');}
   const initial=JSON.stringify(store);if(!readOnly&&(version===0||dirty||initial!==lastSaved)){dirty=true;stash();await persist()}else message('✓ Dados carregados do Supabase • versão '+version);
   setInterval(async()=>{if(dirty||saving||window.yalogCostsDirty)return;try{const remote=await rpc('faturamento_carregar',{p_token:token});if(remote.version!==version){message('Há uma versão mais recente na nuvem. Reabra o módulo para atualizar.',true);conflict=true}}catch(e){if(e.code==='28000'){initialized=false;document.body.classList.remove('yalog-authorized');document.getElementById('cloudGate').hidden=false;gate.textContent='Seu acesso expirou ou foi bloqueado. Entre novamente pelo Ecosystem.'}}},60000);
