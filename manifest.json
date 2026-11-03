@@ -1,8 +1,8 @@
 {
   "module_id": "gestodefaturamentoeresultado",
   "name": "Gestão de Faturamento e Resultado",
-  "version": "1.1.0",
-  "build": "055",
+  "version": "1.2.0",
+  "build": "056",
   "execution_url": "https://yanagizawa-create.github.io/yalog-faturamento-resultado/",
   "platform_min_version": "1.0.0",
   "auth": {
@@ -12,11 +12,12 @@
     "provider": "supabase",
     "tenant": "company_id"
   },
-  "release": "v54-acessos-20261103",
+  "release": "v55-gestor-senhas-20261103",
   "permissions": {
     "profiles": [
       "VISUALIZADOR",
-      "EXECUTOR"
+      "EXECUTOR",
+      "GESTOR"
     ],
     "sections": [
       "overview",
@@ -24,6 +25,11 @@
       "transport",
       "costs"
     ],
-    "management": "MASTER"
+    "management": "MASTER e GESTOR, com hierarquia"
+  },
+  "passwords": {
+    "self_change": true,
+    "master_reset": true,
+    "temporary_change_required": true
   }
 }

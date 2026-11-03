@@ -1,13 +1,14 @@
 {
-  "release": "v54-acessos-20261103",
+  "release": "v55-gestor-senhas-20261103",
   "source_file": "index.html fornecido pelo cliente",
   "source_sha256": "5959cf623bf7495b5689a5d0958b2e1748096eb11be1d1ae002e150f35cc32f0",
   "source_script_count": 21,
   "changes": [
-    "Configurações para cadastro e vínculo de usuários",
-    "Perfis Visualizador e Executor",
-    "Permissões por área no Supabase e na interface",
-    "Gestão de usuários exclusiva do MASTER"
+    "Perfil Gestor para gerenciar usuários abaixo dele",
+    "Minha senha para todos os perfis",
+    "Redefinição de senha pelo MASTER",
+    "Senha temporária com troca obrigatória neste módulo",
+    "Encerramento de sessões após troca ou redefinição"
   ],
   "data_policy": "Lançamentos já existentes no Supabase preservados"
 }

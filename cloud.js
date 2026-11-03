@@ -16,10 +16,13 @@
  document.getElementById('cloudBackup').onclick=()=>{if(!readOnly&&!flushEditors())return;const blob=new Blob([JSON.stringify({format:'yalog-faturamento-v1',company_id:identity.company_id,version,storage:store},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='YALOG_Faturamento_'+identity.company_id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
  document.getElementById('cloudExit').onclick=()=>{if((dirty||window.yalogCostsDirty)&&!confirm('Há alterações pendentes. Baixe um backup ou salve antes de sair. Sair mesmo assim?'))return;sessionStorage.removeItem(sessionKey);location.replace('https://yalog-sistemas.github.io/yalog-ecosystem/')};
  window.addEventListener('beforeunload',e=>{if(dirty||window.yalogCostsDirty){stash();e.preventDefault();e.returnValue=''}});
+ async function beforePasswordChange(){if(!initialized)return;if(!flushEditors())throw Error('Conclua o salvamento dos lançamentos antes de alterar a senha.');if(dirty||saving){await persist();if(dirty||saving||conflict)throw Error('Aguarde a confirmação do salvamento ou baixe um backup antes de alterar a senha.')}}
+ function passwordChanged(){sessionStorage.removeItem(sessionKey);token='';initialized=false;clearTimeout(timer);const settings=document.getElementById('yalogUserSettings');if(settings?.open)settings.close();document.body.classList.remove('yalog-authorized');document.getElementById('cloudGate').hidden=false;gate.textContent='Senha alterada com sucesso. Entre novamente no YALOG Ecosystem com sua nova senha.';const link=document.querySelector('#cloudGate a');if(link)link.href='https://yalog-sistemas.github.io/yalog-ecosystem/?empresa='+encodeURIComponent(identity.company_id)}
+ function passwordExit(){sessionStorage.removeItem(sessionKey);token='';initialized=false;document.getElementById('cloudGate').hidden=false;gate.textContent='Entre novamente pelo Ecosystem para continuar.'}
  try{
   const params=new URLSearchParams(location.search),handoff=params.get('handoff');if(handoff){params.delete('handoff');history.replaceState({},'',location.pathname+(params.size?'?'+params:'')+location.hash);const session=await rpc('faturamento_validar_handoff',{p_token:handoff});token=session.module_session_token;sessionStorage.setItem(sessionKey,token)}else token=sessionStorage.getItem(sessionKey)||'';
   if(!token){gate.textContent='Acesse este módulo pelo YALOG Ecosystem com uma empresa e um usuário autorizados.';return}
-  const loaded=await rpc('faturamento_carregar',{p_token:token});identity=loaded;readOnly=['VISUALIZADOR','CONSULTA','LEITURA','VIEWER'].includes(String(loaded.perfil).toUpperCase());version=loaded.version;store={...loaded.storage};lastSaved=JSON.stringify(store);draftKey='yalog_faturamento_draft:'+loaded.company_id+':'+loaded.login;
+  const loaded=await rpc('faturamento_carregar',{p_token:token});identity=loaded;if(loaded.password_change_required){gate.textContent='Sua senha temporária precisa ser alterada para acessar o módulo.';window.openYalogPasswordSettings({identity:loaded,rpc,token:()=>token,beforeChange:beforePasswordChange,onChanged:passwordChanged,onExit:passwordExit,force:true});return}readOnly=['VISUALIZADOR','CONSULTA','LEITURA','VIEWER'].includes(String(loaded.perfil).toUpperCase());version=loaded.version;store={...loaded.storage};lastSaved=JSON.stringify(store);draftKey='yalog_faturamento_draft:'+loaded.company_id+':'+loaded.login;
   const draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');if(draft?.pending&&draft.version===version&&confirm('Encontramos um rascunho não enviado nesta aba. Deseja recuperá-lo?')){store=draft.storage;dirty=true}
   window.YALOG_BOOT={seed:loaded.seed};
   let scriptError=null;const capture=e=>{scriptError=e.error||Error(e.message)};window.addEventListener('error',capture);
@@ -32,7 +35,7 @@
   if(typeof window.render!=='function')throw Error('Interface não inicializada.');
   window.render();
   if(typeof window.installYalogAccess!=='function')throw Error('Configurações indisponíveis. Atualize a página.');
-  window.installYalogAccess({identity:loaded,rpc,token:()=>token,notify:message});
+  window.installYalogAccess({identity:loaded,rpc,token:()=>token,notify:message,beforePasswordChange,onPasswordChanged:passwordChanged,onPasswordExit:passwordExit});
   requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
   initialized=true;
   if(readOnly){document.getElementById('cloudSave').disabled=true;dirty=false;message('Consulta • dados carregados do Supabase');}

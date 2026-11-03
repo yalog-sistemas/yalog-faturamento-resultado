@@ -35,3 +35,13 @@ As áreas são Visão Geral, Armazenagem, Transporte e Custos e Despesas. Visão
 Administradores MASTER são mantidos pela plataforma YALOG. O cadastro neste módulo concede somente acesso a Gestão de Faturamento e Resultado, sem liberar outros módulos. Desativação nesta tela afeta somente este módulo.
 
 `database/access.sql` complementa `database/schema.sql` e deve ser aplicada uma única vez na base existente. `database/access-tests.sql` testa as permissões em uma transação desfeita ao final.
+
+## Gestores e senhas (v1.2.0)
+
+O MASTER pode atribuir o perfil GESTOR. Um Gestor cadastra, vincula, ativa e desativa Visualizadores e Executores limitados às áreas dele. Não altera MASTER ou outros Gestores e não redefine senhas de terceiros. O perfil GESTOR é específico do módulo; o usuário continua com papel central USUARIO.
+
+Todos os perfis acessam Configurações para alterar a própria senha, informando senha atual e confirmando a nova (mínimo de 8 caracteres). A senha é do login central YALOG: altera o acesso aos demais módulos também. Após a alteração, as sessões anteriores do Ecosystem e dos módulos são revogadas e o usuário precisa entrar novamente.
+
+O MASTER dispõe de Redefinir senha nos usuários abaixo dele. Uma senha temporária é gerada com aleatoriedade criptográfica, mostrada uma vez e removida da tela ao fechar. Senhas em texto claro não são enviadas aos endpoints de senha. O usuário recebe somente a tela de troca obrigatória ao voltar a este módulo; dados financeiros não são carregados antes da troca.
+
+Aplique `database/managers-passwords.sql` uma única vez depois de `database/access.sql`. Os testes em `database/passwords-tests.sql` usam usuários temporários dentro de uma transação desfeita ao final.
