@@ -31,6 +31,8 @@
   document.getElementById('cloudGate').hidden=true;document.body.classList.add('yalog-authorized');
   if(typeof window.render!=='function')throw Error('Interface não inicializada.');
   window.render();
+  if(typeof window.installYalogAccess!=='function')throw Error('Configurações indisponíveis. Atualize a página.');
+  window.installYalogAccess({identity:loaded,rpc,token:()=>token,notify:message});
   requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
   initialized=true;
   if(readOnly){document.getElementById('cloudSave').disabled=true;dirty=false;message('Consulta • dados carregados do Supabase');}

@@ -1,0 +1,38 @@
+begin;
+insert into public.empresas(company_id,nome_fantasia) values('FAT-ACL-QA','QA');
+insert into public.licencas(company_id,status) values('FAT-ACL-QA','ATIVA');
+insert into public.usuarios(company_id,login,nome,role,ativo) values('FAT-ACL-QA','qa-master','QA Master','MASTER',true);
+insert into public.modulos(company_id,modulo,status) values('FAT-ACL-QA','gestodefaturamentoeresultado','LIBERADO');
+insert into public.module_users(company_id,modulo,login,perfil,ativo) values('FAT-ACL-QA','gestodefaturamentoeresultado','qa-master','MASTER',true);
+insert into public.module_sessions(token,company_id,login,modulo) values(repeat('m',64),'FAT-ACL-QA','qa-master','gestodefaturamentoeresultado');
+set local role anon;
+select public.faturamento_gerenciar_usuario(repeat('m',64),'CREATE','qa-executor','QA Executor',repeat('a',64),'EXECUTOR',array['transport'],true);
+select public.faturamento_gerenciar_usuario(repeat('m',64),'CREATE','qa-viewer','QA Viewer',repeat('b',64),'VISUALIZADOR',array['transport'],true);
+reset role;
+insert into public.module_sessions(token,company_id,login,modulo) values(repeat('e',64),'FAT-ACL-QA','qa-executor','gestodefaturamentoeresultado'),(repeat('v',64),'FAT-ACL-QA','qa-viewer','gestodefaturamentoeresultado');
+insert into faturamento_private.states(company_id,updated_by,payload)
+ select 'FAT-ACL-QA','qa-master',jsonb_build_object('yalog_fat_allas',jsonb_set(jsonb_set(seed->'ORIGINAL','{storage,2026}','[111,0,0,0,0,0,0,0,0,0,0,0]'),'{transport,2026}','[222,0,0,0,0,0,0,0,0,0,0,0]')::text,'yalog_fat_inputs',jsonb_set(seed->'INPUT_ORIGINAL','{storageClients,UBA}', '{"Secret-client":[111,0,0,0,0,0,0,0,0,0,0,0]}'::jsonb)::text,'yalog_fat_costs',(seed->'COST_ORIGINAL')::text) from faturamento_private.templates where id='blank-v53';
+set local role anon;
+do $$declare r jsonb;p jsonb;before jsonb;begin
+ r:=public.faturamento_carregar(repeat('v',64));
+ assert r->'access'->>'profile'='VISUALIZADOR';
+ assert r->'access'->'sections'='["transport"]';
+ assert ((r->'storage'->>'yalog_fat_allas')::jsonb->'storage'->'2026'->>0)::numeric=0;
+ assert position('Secret-client' in r::text)=0;
+ begin perform public.faturamento_salvar(repeat('v',64),0,r->'storage');raise exception 'Viewer wrote data';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_usuarios(repeat('e',64));raise exception 'Executor listed users';exception when insufficient_privilege then null;end;
+ r:=public.faturamento_carregar(repeat('e',64));p:=r->'storage';
+ p:=jsonb_set(p,'{yalog_fat_allas}',to_jsonb(jsonb_set(jsonb_set((p->>'yalog_fat_allas')::jsonb,'{storage,2026,0}','999999'),'{transport,2026,0}','333')::text));
+ r:=public.faturamento_salvar(repeat('e',64),0,p);assert (r->>'ok')::boolean;
+ r:=public.faturamento_carregar(repeat('m',64));
+ assert ((r->'storage'->>'yalog_fat_allas')::jsonb->'storage'->'2026'->>0)::numeric=111;
+ assert ((r->'storage'->>'yalog_fat_allas')::jsonb->'transport'->'2026'->>0)::numeric=333;
+ r:=public.faturamento_salvar(repeat('e',64),0,p);assert (r->>'conflict')::boolean;
+ begin perform public.faturamento_gerenciar_usuario(repeat('m',64),'UPDATE','qa-master','',null,'VISUALIZADOR',array['overview'],false);raise exception 'Master modified self';exception when insufficient_privilege then null;end;
+ r:=public.faturamento_usuarios(repeat('m',64));assert jsonb_array_length(r->'users')=3;
+ r:=public.autenticar_ecosystem('FAT-ACL-QA','qa-executor',repeat('a',64));assert (r->>'ok')::boolean;
+ perform public.faturamento_gerenciar_usuario(repeat('m',64),'UPDATE','qa-executor','',null,'VISUALIZADOR',array['overview'],false);
+ begin perform public.faturamento_carregar(repeat('e',64));raise exception 'Inactive user read data';exception when sqlstate '28000' then null;end;
+end $$;
+reset role;
+rollback;
