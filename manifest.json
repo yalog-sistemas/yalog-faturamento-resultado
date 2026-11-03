@@ -1,0 +1,15 @@
+{
+  "module_id": "gestodefaturamentoeresultado",
+  "name": "Gestão de Faturamento e Resultado",
+  "version": "1.0.0",
+  "build": "053",
+  "execution_url": "https://yanagizawa-create.github.io/yalog-faturamento-resultado/",
+  "platform_min_version": "1.0.0",
+  "auth": {
+    "type": "yalog_ecosystem_handoff"
+  },
+  "storage": {
+    "provider": "supabase",
+    "tenant": "company_id"
+  }
+}
