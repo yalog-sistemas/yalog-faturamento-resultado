@@ -1,0 +1,72 @@
+begin;
+insert into public.empresas(company_id,nome_fantasia) values('FAT-PASS-QA','QA');
+insert into public.licencas(company_id,status) values('FAT-PASS-QA','ATIVA');
+insert into public.usuarios(company_id,login,nome,senha_hash,role,ativo) values('FAT-PASS-QA','qa-master','Master',repeat('c',64),'MASTER',true);
+insert into public.modulos(company_id,modulo,status) values('FAT-PASS-QA','gestodefaturamentoeresultado','LIBERADO');
+insert into public.module_users(company_id,modulo,login,perfil,ativo) values('FAT-PASS-QA','gestodefaturamentoeresultado','qa-master','MASTER',true);
+insert into public.module_sessions(token,company_id,login,modulo) values(repeat('m',64),'FAT-PASS-QA','qa-master','gestodefaturamentoeresultado');
+set local role anon;
+select public.faturamento_gerenciar_usuario(repeat('m',64),'CREATE','qa-gestor','Gestor',repeat('a',64),'GESTOR',array['transport'],true);
+select public.faturamento_gerenciar_usuario(repeat('m',64),'CREATE','qa-executor','Executor',repeat('b',64),'EXECUTOR',array['transport'],true);
+reset role;
+insert into public.module_sessions(token,company_id,login,modulo) values(repeat('g',64),'FAT-PASS-QA','qa-gestor','gestodefaturamentoeresultado'),(repeat('e',64),'FAT-PASS-QA','qa-executor','gestodefaturamentoeresultado'),(repeat('o',64),'FAT-PASS-QA','qa-executor','patio');
+insert into public.ecosystem_sessions(token,company_id,login) values(repeat('s',64),'FAT-PASS-QA','qa-executor');
+insert into public.module_access_tokens(token,company_id,login,modulo,ecosystem_session_token) values(repeat('h',64),'FAT-PASS-QA','qa-executor','gestodefaturamentoeresultado',repeat('s',64));
+
+set local role anon;
+select public.faturamento_gerenciar_usuario(repeat('m',64),'CREATE','qa-outside','Outside',repeat('b',64),'EXECUTOR',array['costs'],true);
+do $$begin
+ begin perform public.faturamento_acao_usuario(repeat('g',64),'DELETE','qa-master');raise exception 'Master deleted';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_acao_usuario(repeat('g',64),'BLOCK','qa-outside');raise exception 'Outside blocked';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_redefinir_senha(repeat('g',64),'qa-outside',repeat('d',64));raise exception 'Outside reset';exception when insufficient_privilege then null;end;
+ perform public.faturamento_acao_usuario(repeat('g',64),'BLOCK','qa-executor');
+end $$;
+reset role;
+do $$begin
+ assert not (select ativo from public.module_users where company_id='FAT-PASS-QA' and login='qa-executor' and modulo='gestodefaturamentoeresultado');
+ assert (select revoked_at is null from public.module_sessions where token=repeat('o',64));
+end $$;
+set local role anon;
+select public.faturamento_acao_usuario(repeat('g',64),'UNBLOCK','qa-executor');
+select public.faturamento_acao_usuario(repeat('g',64),'DELETE','qa-executor');
+reset role;
+do $$begin
+ assert exists(select 1 from public.usuarios where company_id='FAT-PASS-QA' and login='qa-executor');
+ assert not exists(select 1 from public.module_users where company_id='FAT-PASS-QA' and login='qa-executor' and modulo='gestodefaturamentoeresultado');
+end $$;
+set local role anon;
+select public.faturamento_gerenciar_usuario(repeat('g',64),'LINK','qa-executor','Executor',null,'EXECUTOR',array['transport'],true);
+reset role;
+set local role anon;
+do $$declare r jsonb;begin
+ r:=public.faturamento_carregar(repeat('g',64));assert (r->'access'->>'manager')::boolean;assert not (r->'access'->>'admin')::boolean;assert r->'access'->>'profile'='GESTOR';
+ perform public.faturamento_usuarios(repeat('g',64));
+ perform public.faturamento_gerenciar_usuario(repeat('g',64),'CREATE','qa-viewer','Viewer',repeat('f',64),'VISUALIZADOR',array['transport'],true);
+ begin perform public.faturamento_gerenciar_usuario(repeat('g',64),'CREATE','qa-escalate','Bad',repeat('f',64),'GESTOR',array['transport'],true);raise exception 'Manager created manager';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_gerenciar_usuario(repeat('g',64),'UPDATE','qa-executor','',null,'EXECUTOR',array['costs'],true);raise exception 'Manager granted unauthorized scope';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_redefinir_senha(repeat('g',64),'qa-master',repeat('d',64));raise exception 'Manager reset master';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_redefinir_senha(repeat('m',64),'qa-master',repeat('d',64));raise exception 'Master reset own password without current password';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_alterar_senha(repeat('e',64),repeat('a',64),repeat('d',64));raise exception 'Wrong current password accepted';exception when sqlstate '28000' then null;end;
+ perform public.faturamento_redefinir_senha(repeat('g',64),'qa-executor',repeat('d',64));
+ begin perform public.faturamento_carregar(repeat('e',64));raise exception 'Reset left old session valid';exception when sqlstate '28000' then null;end;
+end $$;
+reset role;
+do $$begin
+ assert (select bool_and(revoked_at is not null) from public.module_sessions where company_id='FAT-PASS-QA' and login='qa-executor');
+ assert (select bool_and(revoked_at is not null) from public.ecosystem_sessions where company_id='FAT-PASS-QA' and login='qa-executor');
+ assert (select bool_and(used_at is not null) from public.module_access_tokens where company_id='FAT-PASS-QA' and login='qa-executor');
+end $$;
+insert into public.module_sessions(token,company_id,login,modulo) values(repeat('n',64),'FAT-PASS-QA','qa-executor','gestodefaturamentoeresultado'),(repeat('v',64),'FAT-PASS-QA','qa-viewer','gestodefaturamentoeresultado');
+set local role anon;
+do $$declare r jsonb;begin
+ r:=public.faturamento_carregar(repeat('n',64));assert (r->>'password_change_required')::boolean;assert not r?'storage';assert not r?'seed';
+ begin perform public.faturamento_salvar(repeat('n',64),0,'{}');raise exception 'User bypassed password change';exception when insufficient_privilege then null;end;
+ perform public.faturamento_alterar_senha(repeat('n',64),repeat('d',64),repeat('e',64));
+ r:=public.autenticar_ecosystem('FAT-PASS-QA','qa-executor',repeat('e',64));assert (r->>'ok')::boolean;
+ begin perform public.faturamento_carregar(repeat('n',64));raise exception 'Own change retained old session';exception when sqlstate '28000' then null;end;
+ perform public.faturamento_alterar_senha(repeat('v',64),repeat('f',64),repeat('d',64));
+ perform public.faturamento_alterar_senha(repeat('g',64),repeat('a',64),repeat('d',64));
+ perform public.faturamento_alterar_senha(repeat('m',64),repeat('c',64),repeat('f',64));
+end $$;
+reset role;
+rollback;
