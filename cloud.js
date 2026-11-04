@@ -41,6 +41,7 @@
   requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
   window.installYalogCompanyBranding?.({identity:loaded,rpc,token:()=>token,branding:window.YALOG_COMPANY_BRAND});
   window.installYalogCostEntry?.();
+  window.installYalogCostAccountEditor?.({identity:loaded});
   initialized=true;finishEntry();
   if(readOnly){document.getElementById('cloudSave').disabled=true;dirty=false;message('Consulta • dados carregados do Supabase');}
   const initial=JSON.stringify(store);if(!readOnly&&(version===0||dirty||initial!==lastSaved)){dirty=true;stash();await persist()}else message('✓ Dados carregados do Supabase • versão '+version);
