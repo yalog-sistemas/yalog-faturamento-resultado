@@ -1823,5 +1823,27 @@ if(window.render)window.render();
 @media(max-width:700px){#costs #costModal #costInputGrid tbody tr>td:first-child,#costs #costModal #costInputGrid thead th:first-child{min-width:200px!important;width:200px!important}#costs #costModal.costPageEditor #costInputGrid{scroll-padding-left:200px}}
 }
 </style>
+
+<style id="yalog-single-month-compact">
+@media screen{
+/* A focused three-column sheet; full-year layout remains unchanged. */
+#costs #costModal.costPageEditor:has(#costInputGrid.costSingleMonth) .modalBox{width:min(100%,1040px)!important;margin-inline:auto!important}
+#costs #costModal.costPageEditor #costInputGrid.costSingleMonth{width:100%!important;scroll-padding-left:360px}
+#costs #costModal #costInputGrid.costSingleMonth table{width:100%!important;min-width:620px!important;table-layout:fixed!important}
+#costs #costModal #costInputGrid.costSingleMonth thead th:first-child,#costs #costModal #costInputGrid.costSingleMonth tbody tr>td:first-child{width:48%!important;min-width:0!important;max-width:none!important;padding:10px 12px!important;overflow-wrap:break-word}
+#costs #costModal #costInputGrid.costSingleMonth thead th:not(:first-child),#costs #costModal #costInputGrid.costSingleMonth tbody td:not(:first-child){width:26%!important;padding:9px 14px!important;text-align:right}
+#costs #costModal #costInputGrid.costSingleMonth input[data-cat],#costs #costModal #costInputGrid.costSingleMonth input[data-source]{width:100%!important;min-width:0!important;max-width:180px!important;height:34px;font-size:12px}
+#costs #costModal #costInputGrid.costSingleMonth .costCategoryHeading th{padding:10px 130px 10px 14px!important;background:#e8f0f3!important;color:#173f50!important}
+#costs #costModal #costInputGrid.costSingleMonth .costCategoryCopy small{color:#496874!important}
+#costs #costModal:has(#costInputGrid.costSingleMonth) .costLookupBar{align-items:center;gap:10px!important}
+#costs #costModal:has(#costInputGrid.costSingleMonth) .costLookupBar .searchFilter{flex:1 1 260px}
+#costs #costModal:has(#costInputGrid.costSingleMonth) .costSearchTools{flex:1 1 100%;justify-content:flex-end}
+@media(max-width:700px){
+#costs #costModal #costInputGrid.costSingleMonth table{min-width:530px!important}
+#costs #costModal #costInputGrid.costSingleMonth thead th:first-child,#costs #costModal #costInputGrid.costSingleMonth tbody tr>td:first-child{width:46%!important;padding:8px!important}
+#costs #costModal #costInputGrid.costSingleMonth thead th:not(:first-child),#costs #costModal #costInputGrid.costSingleMonth tbody td:not(:first-child){width:27%!important;padding:8px!important}
+}
+}
+</style>
 </body>
 </html>
