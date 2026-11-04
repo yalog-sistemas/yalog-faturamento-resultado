@@ -2,6 +2,8 @@
 (async function(){
  const API='https://pyckcyaojztixsujbylq.supabase.co/rest/v1/rpc/';
  const KEY='sb_publishable_iHBh-BZsjisQc0i09QUDoQ_9mZl1vfk';
+ const finishEntry=()=>document.documentElement.classList.remove('yalog-entering');
+ const ecosystemURL=()=> 'https://yalog-sistemas.github.io/yalog-ecosystem/'+(identity?.company_id?'?empresa='+encodeURIComponent(identity.company_id):'');
  const sessionKey='yalog_faturamento_session_v1';
  const status=document.getElementById('cloudStatus'),gate=document.getElementById('gateMessage');
  let token='',version=0,identity=null,initialized=false,dirty=false,saving=false,timer=null,conflict=false,store={},lastSaved='',draftKey='',readOnly=false;
@@ -14,15 +16,15 @@
  function flushEditors(){if(readOnly)return true;if(document.getElementById('inputModal')?.classList.contains('open')&&window.saveInputs&&window.saveInputs()===false)return false;if(window.saveCosts&&window.yalogCostsDirty&&window.saveCosts()===false)return false;return true}
  document.getElementById('cloudSave').onclick=async()=>{if(flushEditors())await persist()};
  document.getElementById('cloudBackup').onclick=()=>{if(!readOnly&&!flushEditors())return;const blob=new Blob([JSON.stringify({format:'yalog-faturamento-v1',company_id:identity.company_id,version,storage:store},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='YALOG_Faturamento_'+identity.company_id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
- document.getElementById('cloudExit').onclick=()=>{if((dirty||window.yalogCostsDirty)&&!confirm('Há alterações pendentes. Baixe um backup ou salve antes de sair. Sair mesmo assim?'))return;sessionStorage.removeItem(sessionKey);location.replace('https://yalog-sistemas.github.io/yalog-ecosystem/')};
+ document.getElementById('cloudExit').onclick=()=>{if((dirty||window.yalogCostsDirty)&&!confirm('Há alterações pendentes. Baixe um backup ou salve antes de sair. Sair mesmo assim?'))return;sessionStorage.removeItem(sessionKey);document.documentElement.classList.add('yalog-entering');location.replace(ecosystemURL())};
  window.addEventListener('beforeunload',e=>{if(dirty||window.yalogCostsDirty){stash();e.preventDefault();e.returnValue=''}});
  async function beforePasswordChange(){if(!initialized)return;if(!flushEditors())throw Error('Conclua o salvamento dos lançamentos antes de alterar a senha.');if(dirty||saving){await persist();if(dirty||saving||conflict)throw Error('Aguarde a confirmação do salvamento ou baixe um backup antes de alterar a senha.')}}
  function passwordChanged(){sessionStorage.removeItem(sessionKey);token='';initialized=false;clearTimeout(timer);const settings=document.getElementById('yalogUserSettings');if(settings?.open)settings.close();document.body.classList.remove('yalog-authorized');document.getElementById('cloudGate').hidden=false;gate.textContent='Senha alterada com sucesso. Entre novamente no YALOG Ecosystem com sua nova senha.';const link=document.querySelector('#cloudGate a');if(link)link.href='https://yalog-sistemas.github.io/yalog-ecosystem/?empresa='+encodeURIComponent(identity.company_id)}
  function passwordExit(){sessionStorage.removeItem(sessionKey);token='';initialized=false;document.getElementById('cloudGate').hidden=false;gate.textContent='Entre novamente pelo Ecosystem para continuar.'}
  try{
   const params=new URLSearchParams(location.search),handoff=params.get('handoff');if(handoff){params.delete('handoff');history.replaceState({},'',location.pathname+(params.size?'?'+params:'')+location.hash);const session=await rpc('faturamento_validar_handoff',{p_token:handoff});token=session.module_session_token;sessionStorage.setItem(sessionKey,token)}else token=sessionStorage.getItem(sessionKey)||'';
-  if(!token){gate.textContent='Acesse este módulo pelo YALOG Ecosystem com uma empresa e um usuário autorizados.';return}
-  const loaded=await rpc('faturamento_carregar',{p_token:token});identity=loaded;if(loaded.password_change_required){gate.textContent='Sua senha temporária precisa ser alterada para acessar o módulo.';window.openYalogPasswordSettings({identity:loaded,rpc,token:()=>token,beforeChange:beforePasswordChange,onChanged:passwordChanged,onExit:passwordExit,force:true});return}readOnly=['VISUALIZADOR','CONSULTA','LEITURA','VIEWER'].includes(String(loaded.access?.profile||loaded.perfil).trim().toUpperCase());version=loaded.version;store={...loaded.storage};lastSaved=JSON.stringify(store);draftKey='yalog_faturamento_draft:'+loaded.company_id+':'+loaded.login;
+  if(!token){finishEntry();gate.textContent='Acesse este módulo pelo YALOG Ecosystem com uma empresa e um usuário autorizados.';return}
+  const loaded=await rpc('faturamento_carregar',{p_token:token});identity=loaded;if(loaded.password_change_required){finishEntry();gate.textContent='Sua senha temporária precisa ser alterada para acessar o módulo.';window.openYalogPasswordSettings({identity:loaded,rpc,token:()=>token,beforeChange:beforePasswordChange,onChanged:passwordChanged,onExit:passwordExit,force:true});return}readOnly=['VISUALIZADOR','CONSULTA','LEITURA','VIEWER'].includes(String(loaded.access?.profile||loaded.perfil).trim().toUpperCase());version=loaded.version;store={...loaded.storage};lastSaved=JSON.stringify(store);draftKey='yalog_faturamento_draft:'+loaded.company_id+':'+loaded.login;
   const draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');if(!readOnly&&draft?.pending&&draft.version===version&&confirm('Encontramos um rascunho não enviado nesta aba. Deseja recuperá-lo?')){store=draft.storage;dirty=true}
   window.YALOG_BOOT={seed:loaded.seed};
   let scriptError=null;const capture=e=>{scriptError=e.error||Error(e.message)};window.addEventListener('error',capture);
@@ -37,9 +39,9 @@
   if(typeof window.installYalogAccess!=='function')throw Error('Configurações indisponíveis. Atualize a página.');
   window.installYalogAccess({identity:loaded,rpc,token:()=>token,notify:message,beforePasswordChange,onPasswordChanged:passwordChanged,onPasswordExit:passwordExit});
   requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
-  initialized=true;
+  initialized=true;finishEntry();
   if(readOnly){document.getElementById('cloudSave').disabled=true;dirty=false;message('Consulta • dados carregados do Supabase');}
   const initial=JSON.stringify(store);if(!readOnly&&(version===0||dirty||initial!==lastSaved)){dirty=true;stash();await persist()}else message('✓ Dados carregados do Supabase • versão '+version);
   setInterval(async()=>{if(!readOnly&&(dirty||saving||window.yalogCostsDirty))return;try{const remote=await rpc('faturamento_carregar',{p_token:token});if(remote.version!==version){message('Há uma versão mais recente na nuvem. Reabra o módulo para atualizar.',true);conflict=true}}catch(e){if(e.code==='28000'){initialized=false;document.body.classList.remove('yalog-authorized');document.getElementById('cloudGate').hidden=false;gate.textContent='Seu acesso expirou ou foi bloqueado. Entre novamente pelo Ecosystem.'}}},60000);
- }catch(e){document.body.classList.remove('yalog-authorized');document.getElementById('cloudGate').hidden=false;gate.textContent='Não foi possível abrir o módulo: '+e.message;console.error('YALOG Faturamento:',e.message)}
+ }catch(e){finishEntry();document.body.classList.remove('yalog-authorized');document.getElementById('cloudGate').hidden=false;gate.textContent='Não foi possível abrir o módulo: '+e.message;console.error('YALOG Faturamento:',e.message)}
 })();
