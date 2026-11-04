@@ -39,6 +39,7 @@
   if(typeof window.installYalogAccess!=='function')throw Error('Configurações indisponíveis. Atualize a página.');
   window.installYalogAccess({identity:loaded,rpc,token:()=>token,notify:message,beforePasswordChange,onPasswordChanged:passwordChanged,onPasswordExit:passwordExit});
   requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+  window.installYalogCostEntry?.();
   initialized=true;finishEntry();
   if(readOnly){document.getElementById('cloudSave').disabled=true;dirty=false;message('Consulta • dados carregados do Supabase');}
   const initial=JSON.stringify(store);if(!readOnly&&(version===0||dirty||initial!==lastSaved)){dirty=true;stash();await persist()}else message('✓ Dados carregados do Supabase • versão '+version);
