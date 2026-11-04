@@ -1,0 +1,28 @@
+begin;
+insert into public.empresas(company_id,nome_fantasia) values('FAT-BRAND-A','Company A'),('FAT-BRAND-B','Company B');
+insert into public.licencas(company_id,status) values('FAT-BRAND-A','ATIVA'),('FAT-BRAND-B','ATIVA');
+insert into public.modulos(company_id,modulo,status) values('FAT-BRAND-A','gestodefaturamentoeresultado','LIBERADO'),('FAT-BRAND-B','gestodefaturamentoeresultado','LIBERADO');
+insert into public.usuarios(company_id,login,nome,role,ativo) values('FAT-BRAND-A','qa-master','Master','MASTER',true),('FAT-BRAND-A','qa-manager','Manager','USUARIO',true),('FAT-BRAND-A','qa-view','Viewer','USUARIO',true),('FAT-BRAND-B','qa-master','Master B','MASTER',true);
+insert into public.module_users(company_id,modulo,login,perfil,ativo) values('FAT-BRAND-A','gestodefaturamentoeresultado','qa-master','MASTER',true),('FAT-BRAND-A','gestodefaturamentoeresultado','qa-manager','GESTOR',true),('FAT-BRAND-A','gestodefaturamentoeresultado','qa-view','VISUALIZADOR',true),('FAT-BRAND-B','gestodefaturamentoeresultado','qa-master','MASTER',true);
+insert into public.module_sessions(token,company_id,login,modulo) values(repeat('a',64),'FAT-BRAND-A','qa-master','gestodefaturamentoeresultado'),(repeat('g',64),'FAT-BRAND-A','qa-manager','gestodefaturamentoeresultado'),(repeat('v',64),'FAT-BRAND-A','qa-view','gestodefaturamentoeresultado'),(repeat('b',64),'FAT-BRAND-B','qa-master','gestodefaturamentoeresultado');
+set local role anon;
+do $$declare r jsonb;image text:='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jq1cAAAAASUVORK5CYII=';begin
+ r:=public.faturamento_identidade_empresa(repeat('v',64));assert r->>'display_name'='Company A';assert r->>'logo_data' is null;
+ begin perform public.faturamento_salvar_identidade(repeat('v',64),'Bad',null);raise exception 'Viewer changed brand';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_salvar_identidade(repeat('g',64),'Bad',null);raise exception 'Manager changed brand';exception when insufficient_privilege then null;end;
+ begin perform public.faturamento_identidade_empresa(repeat('z',64));raise exception 'Invalid session read brand';exception when sqlstate '28000' then null;end;
+ begin perform public.faturamento_salvar_identidade(repeat('a',64),'X',null);raise exception 'Short name accepted';exception when invalid_parameter_value then null;end;
+ begin perform public.faturamento_salvar_identidade(repeat('a',64),'Good','data:image/svg+xml;base64,PHN2Zz4=');raise exception 'SVG accepted';exception when invalid_parameter_value then null;end;
+ begin perform public.faturamento_salvar_identidade(repeat('a',64),'Good','data:image/png;base64,PHNjcmlwdD4=');raise exception 'Invalid image signature accepted';exception when invalid_parameter_value then null;end;
+ r:=public.faturamento_salvar_identidade(repeat('a',64),'Brand A',image);assert (r->>'ok')::boolean;
+ r:=public.faturamento_identidade_empresa(repeat('v',64));assert r->>'display_name'='Brand A';assert r->>'logo_data'=image;
+ r:=public.faturamento_identidade_empresa(repeat('b',64));assert r->>'display_name'='Company B';assert r->>'logo_data' is null;
+ perform public.faturamento_salvar_identidade(repeat('b',64),'Brand B',null);
+ r:=public.faturamento_identidade_empresa(repeat('a',64));assert r->>'display_name'='Brand A';
+ perform public.faturamento_salvar_identidade(repeat('a',64),'Brand A',null);
+ r:=public.faturamento_identidade_empresa(repeat('v',64));assert r->>'logo_data' is null;
+ begin perform * from faturamento_private.company_branding;raise exception 'Anonymous direct table read';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+do $$begin assert not exists(select 1 from faturamento_private.states where company_id in ('FAT-BRAND-A','FAT-BRAND-B')),'Branding touched financial state';end $$;
+rollback;

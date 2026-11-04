@@ -24,7 +24,7 @@
  try{
   const params=new URLSearchParams(location.search),handoff=params.get('handoff');if(handoff){params.delete('handoff');history.replaceState({},'',location.pathname+(params.size?'?'+params:'')+location.hash);const session=await rpc('faturamento_validar_handoff',{p_token:handoff});token=session.module_session_token;sessionStorage.setItem(sessionKey,token)}else token=sessionStorage.getItem(sessionKey)||'';
   if(!token){finishEntry();gate.textContent='Acesse este módulo pelo YALOG Ecosystem com uma empresa e um usuário autorizados.';return}
-  const loaded=await rpc('faturamento_carregar',{p_token:token});identity=loaded;if(loaded.password_change_required){finishEntry();gate.textContent='Sua senha temporária precisa ser alterada para acessar o módulo.';window.openYalogPasswordSettings({identity:loaded,rpc,token:()=>token,beforeChange:beforePasswordChange,onChanged:passwordChanged,onExit:passwordExit,force:true});return}readOnly=['VISUALIZADOR','CONSULTA','LEITURA','VIEWER'].includes(String(loaded.access?.profile||loaded.perfil).trim().toUpperCase());version=loaded.version;store={...loaded.storage};lastSaved=JSON.stringify(store);draftKey='yalog_faturamento_draft:'+loaded.company_id+':'+loaded.login;
+  const loaded=await rpc('faturamento_carregar',{p_token:token});identity=loaded;if(loaded.password_change_required){finishEntry();gate.textContent='Sua senha temporária precisa ser alterada para acessar o módulo.';window.openYalogPasswordSettings({identity:loaded,rpc,token:()=>token,beforeChange:beforePasswordChange,onChanged:passwordChanged,onExit:passwordExit,force:true});return}window.YALOG_COMPANY_BRAND=await rpc('faturamento_identidade_empresa',{p_token:token});readOnly=['VISUALIZADOR','CONSULTA','LEITURA','VIEWER'].includes(String(loaded.access?.profile||loaded.perfil).trim().toUpperCase());version=loaded.version;store={...loaded.storage};lastSaved=JSON.stringify(store);draftKey='yalog_faturamento_draft:'+loaded.company_id+':'+loaded.login;
   const draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');if(!readOnly&&draft?.pending&&draft.version===version&&confirm('Encontramos um rascunho não enviado nesta aba. Deseja recuperá-lo?')){store=draft.storage;dirty=true}
   window.YALOG_BOOT={seed:loaded.seed};
   let scriptError=null;const capture=e=>{scriptError=e.error||Error(e.message)};window.addEventListener('error',capture);
@@ -39,6 +39,7 @@
   if(typeof window.installYalogAccess!=='function')throw Error('Configurações indisponíveis. Atualize a página.');
   window.installYalogAccess({identity:loaded,rpc,token:()=>token,notify:message,beforePasswordChange,onPasswordChanged:passwordChanged,onPasswordExit:passwordExit});
   requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+  window.installYalogCompanyBranding?.({identity:loaded,rpc,token:()=>token,branding:window.YALOG_COMPANY_BRAND});
   window.installYalogCostEntry?.();
   initialized=true;finishEntry();
   if(readOnly){document.getElementById('cloudSave').disabled=true;dirty=false;message('Consulta • dados carregados do Supabase');}
