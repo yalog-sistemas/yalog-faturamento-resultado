@@ -1,6 +1,5 @@
 'use strict';
 window.installYalogCompanyBranding=function({identity,rpc,token,branding}){
- const footerText='YALog OS® • Sistema Integrado de Gestão Logística Modular • Modelo MVP — Faturamento & Forecast';
  let current=branding,pendingLogo=branding.logo_data||null,imageRun=0,processing=false;
  const initials=name=>String(name).trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
  function logo(host,data,name){if(!host)return;host.replaceChildren();host.classList.add('companyLogo');if(data){const img=document.createElement('img');img.src=data;img.alt='Logotipo de '+name;host.appendChild(img)}else host.textContent=initials(name)}
@@ -9,7 +8,7 @@ window.installYalogCompanyBranding=function({identity,rpc,token,branding}){
   const title=document.querySelector('.top .brand b');if(title){title.textContent=b.display_name;title.title=b.display_name}
   document.querySelectorAll('.top .logo,#inputModal .modalHead .logo,#costModal .modalHead .logo').forEach(el=>logo(el,b.logo_data,b.display_name));
   const inputTitle=document.querySelector('#inputModal .modalHead h2'),costTitle=document.querySelector('#costModal .modalHead h2');if(inputTitle)inputTitle.textContent=b.display_name+' • Input de Faturamento';if(costTitle)costTitle.textContent=b.display_name+' • Custos e Despesas';
-  const footer=document.querySelector('.footer');if(footer){footer.textContent=footerText;document.querySelector('.main')?.appendChild(footer)}
+  const footer=document.getElementById('yalogInstitutionalFooter');if(footer)document.querySelector('.main')?.appendChild(footer);
   document.title=b.display_name+' | Faturamento e Resultado';
  }
  apply(branding);
